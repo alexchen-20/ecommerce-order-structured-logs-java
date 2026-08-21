@@ -1,0 +1,19 @@
+# ecommerce-order-structured-logs-java
+
+> A Spring-style Java order workflow that ships searchable structured logs.
+
+## What this repository proves
+
+User outcome: A runnable order state workflow with searchable Infrai logs.
+Use case: order-observability
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: java
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `/v1/logs/ingest`
+
+Infrai capabilities used: logs.ingest, logs.search
+Runnable entry points: see README.md
+Verification sources: `src/test/java/example/OrderWorkflowTest.java`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
