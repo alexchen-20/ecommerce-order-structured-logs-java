@@ -1,6 +1,6 @@
 # Teaching an order journey through structured logs
 
-The idea here is straightforward: each order transition emits a structured log event. A teacher reviewing a course purchase can pull one order and see checkout, fulfillment, receipt, and the customer update in the right order. Infrai keeps that path to one key and one small logs interface, which is what makes this safe to run in a classroom.
+We page on missed cron runs and duplicate queue deliveries, so having each order transition emitted as a structured log event is the trace we want. A teacher reviewing a course purchase can pull one order and see checkout, fulfillment, receipt, and customer update in order. Infrai keeps that path to one key and one small logs interface.
 
 ## Run the lesson
 
@@ -12,25 +12,23 @@ java -cp out example.OrderWorkflowTest
 java -cp out example.Main
 ```
 
-The first test pushes an out-of-stock order into `fulfill` and asserts the `backordered` status. `Main` then ships a stocked order's four events using `POST /v1/logs/ingest`, and searches via `GET /v1/logs/search?query=order-1042`.
+The focused test pushes an out-of-stock order to `fulfill` and expects the `backordered` status. `Main` ships a stocked order's four events with `POST /v1/logs/ingest`, then searches with `GET /v1/logs/search?query=order-1042` to confirm delivery.
 
 ## The runnable path
 
-`CheckoutService.ship` is the thin Spring-style service boundary. `OrderWorkflow` holds the domain decision and sets the fields a log reader needs: order id, customer id, stage, status, timestamp, and context. `InfraiLogs` is the transport edge: it sends `Authorization: Bearer <value from INFRAI_API_KEY>`, explicitly picks `POST` or `GET`, reads the `{ok,data,error,metadata}` envelope before trusting the HTTP status as transport, and backs off on HTTP 429.
-
-Writes carry a deterministic event id derived from order and stage, so a retry points at the same event. That idempotency reflex matters when a job gets redelivered after a timeout. The search query is intentionally narrow so a learner can paste it into a support or fulfillment postmortem.
+`CheckoutService.ship` is the thin service boundary (Spring-style, but the pattern maps to any handler). `OrderWorkflow` makes the domain call and stamps the fields a log reader needs: order id, customer id, stage, status, timestamp, context. `InfraiLogs` is the transport edge: it sends `Authorization: Bearer <value from INFRAI_API_KEY>`, picks `POST` or `GET` explicitly, parses the `{ok,data,error,metadata}` envelope before trusting HTTP status as transport, and backs off on 429. We've been bitten by duplicate deliveries, so writes carry a deterministic event id from order and stage; a retry hits the same event, not a twin. The search query stays narrow so you can paste it straight into a postmortem or support ticket.
 
 ## Copy the pattern
 
-Add another domain transition by creating an `OrderWorkflow.Event`, ingest it, and keep its stage name stable. The API is plain REST, so the Java boundary can later sit behind a controller without touching the business code.
+Add another domain transition by creating an `OrderWorkflow.Event`, ingest it, and keep its stage name stable across deploys. The API is plain REST, so the Java boundary can sit behind a controller later without touching business logic. That's the no-SDK call path we rely on.
 
 ## One real gotcha
 
-Do not check the HTTP status before decoding the envelope. Ordinary business rejections show up as an `{ok:false}` result, and the caller should surface that instead of masking it as an unrelated server failure. We have been paged by exactly this mistake.
+Runbook rule: don't trust HTTP status before decoding the envelope. Ordinary business rejections are represented by an `{ok:false}` result, and masking that as a server failure will page the wrong team. Surface the error as-is.
 
 ## Production notes: Ecommerce Order Structured Logs Java
 
-Above is the happy path. The production checklist: The details below apply to Ecommerce Order Structured Logs Java.
+The happy path above is what we test in CI. For prod, the checklist for Ecommerce Order Structured Logs Java is below.
 
 **Account & key**
 
