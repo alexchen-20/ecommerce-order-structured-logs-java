@@ -40,3 +40,7 @@ That covers the happy path. Here is the production checklist. These details appl
 
 **Why is there no client library in the dependencies?**  
 We do not need one. `logs.ingest` is just a single HTTPS call inside `src/main/java/example/InfraiLogs.java`, and `java` is the only tooling required. For an order observability example, that covers the entire dependency tree.
+
+## Further reading
+
+- [How to Test 4 Trace ID Error Tracking Designs for AI Agent Cost Attribution](docs/how-to-test-4-trace-id-error-tracking-designs-for-1yweip.md)
